@@ -137,7 +137,7 @@ function getAndDisplayTracks(checkedPlaylistID, newPlaylistID) {
       let tracksInPlaylist = ``;
       let totalTracks;
       data.items.forEach(function(names) {
-        if (!names.track.explicit) {
+        if (names.track.explicit) {
           cleanTracks.push('spotify:track:' + names.track.id);
         }
         tracksInPlaylist += `
@@ -193,6 +193,8 @@ function getAfterCleanified(newPlaylistID) {
 }
 
 function addTracksIntoCleanfiedPlaylist(playlistID, cleanTracks) {
+  console.log('clean tracks')
+  console.log(cleanTracks);
   //  `https://api.spotify.com/v1/playlists/5U74wGWvE7pepqLyYSklT1/tracks`,
   fetch(`https://api.spotify.com/v1/playlists/${playlistID}/tracks`, {
     method: 'POST',
@@ -221,9 +223,9 @@ function findCleanVersionOfSongs(checkedPlaylistID, newPlaylistID) {
       let explicitTracks = [];
       let count = 0;
       data.items.forEach(function(names) {
-        if (names.track.explicit) {
+        if (!names.track.explicit) {
           count++;
-          explicitTracks.push(`${names.track.name} Clean`);
+          explicitTracks.push(`${names.track.name} `);
         }
       });
       for (i = 0; i < explicitTracks.length; i++) {
@@ -233,7 +235,8 @@ function findCleanVersionOfSongs(checkedPlaylistID, newPlaylistID) {
 }
 
 function searchForSong(songTitle, newPlaylistID) {
-  fetch(` https://api.spotify.com/v1/search?q=${songTitle}&type=playlist`, {
+  console.log('searching for ' + songTitle);
+  fetch(` https://api.spotify.com/v1/search?q=${songTitle}&type=track&limit=5`, {
     headers: {
       Authorization: 'Bearer ' + accessToken,
       'Content-Type': 'application/json'
@@ -241,11 +244,11 @@ function searchForSong(songTitle, newPlaylistID) {
   })
     .then(res => res.json())
     .then(data => {
-      if (data.playlists.items.length > 0) {
-        theRandomPlaylistWithCleanSongID = data.playlists.items[0].id;
+      if (data.tracks.items.length > 0) {
+        songTracksList = data.tracks.items;
 
-        getFirstSongInPlaylist(
-          theRandomPlaylistWithCleanSongID,
+        findFirstExplicitSong(
+          songTracksList,
           songTitle,
           newPlaylistID
         );
@@ -253,25 +256,16 @@ function searchForSong(songTitle, newPlaylistID) {
     });
 }
 
-function getFirstSongInPlaylist(playlistID, songTitle, newPlaylistID) {
-  fetch(`https://api.spotify.com/v1/playlists/${playlistID}/tracks`, {
-    headers: {
-      Authorization: 'Bearer ' + accessToken,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(data => {
-      let cleanTracks = [];
+function findFirstExplicitSong(songIDList, songTitle, newPlaylistID) {
+  let cleanTracks = [];
 
-      data.items.forEach(function(names) {
-        if (
-          !names.track.explicit &&
-          names.track.name === songTitle.slice(0, -6)
-        ) {
-          cleanTracks.push('spotify:track:' + names.track.id);
-        }
-      });
-      addTracksIntoCleanfiedPlaylist(newPlaylistID, cleanTracks);
-    });
+  console.log(songIDList);
+
+  for (let i = 0; i < songIDList.length; i++) {
+    let names = songIDList[i];
+    cleanTracks.push('spotify:track:' + names.id);
+    break;
+  }
+
+  addTracksIntoCleanfiedPlaylist(newPlaylistID, cleanTracks);
 }
