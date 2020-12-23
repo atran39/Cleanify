@@ -27,46 +27,55 @@ function getSpotifyUsername() {
 }
 
 //Get's all playlists that the user follows
-function getPlaylists() {
-  fetch('https://api.spotify.com/v1/me/playlists', {
-    headers: {
-      Authorization: 'Bearer ' + accessToken
-    }
-  })
-    .then(res => res.json())
-    .then(data => {
+async function getPlaylists() {
+  try {
+    let response = await fetch('https://api.spotify.com/v1/me/playlists', {
+      headers: {
+        Authorization: 'Bearer ' + accessToken
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    } else {
+      let data = await response.json();
       let playlistItems = '';
       let count = 0;
       data.items.forEach(function(names) {
         count++;
 
         playlistItems += `
-       
+        
             <ul class="list-group list-group-flush">
               <li class="list-group-item"> <input type = "radio" name="playlistTitles" id="${names.id}" value="${names.name}">  ${names.name}</li>
             </ul>
-     
+      
       `;
       });
       document.getElementById('playlistItems').innerHTML = playlistItems;
-    });
+    }
+  } catch(e) {
+    console.log(e);
+  }
 }
 
-function deletePlaylist() {
-  let checkedPlaylistID = getCheckedPlaylistID();
-  let checkedPlaylistName = getCheckedPlaylistName();
+async function deletePlaylist() {
+  try {
+    let checkedPlaylistID = getCheckedPlaylistID();
+    let checkedPlaylistName = getCheckedPlaylistName();
 
-  fetch(`https://api.spotify.com/v1/playlists/${checkedPlaylistID}/followers`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: 'Bearer ' + accessToken
-    }
-  })
-    .then(res => res.json())
-    .then(data => {});
-  location.reload();
+    let response = await fetch(`https://api.spotify.com/v1/playlists/${checkedPlaylistID}/followers`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: 'Bearer ' + accessToken
+      }
+    });
+    location.reload();
 
-  alert(`Deleted playlist named: ${checkedPlaylistName}`);
+    alert(`Deleted playlist named: ${checkedPlaylistName}`);
+  } catch(e) {
+    console.log(e);
+  }
 }
 
 function getCheckedPlaylistID() {
@@ -99,173 +108,198 @@ function getCheckedPlaylistName() {
 //it displays the tracks of the original playlist and shows which tracks
 //are explicit
 
-function createCleanifiedPlaylist() {
-  let checkedPlaylistName = getCheckedPlaylistName();
-  let checkedPlaylistID = getCheckedPlaylistID();
+async function createCleanifiedPlaylist() {
+  try {
+    let checkedPlaylistName = getCheckedPlaylistName();
+    let checkedPlaylistID = getCheckedPlaylistID();
 
-  let newlyCreatedPlaylistID = '';
-  //creates new playlist
-  fetch('https://api.spotify.com/v1/me/playlists', {
-    method: 'POST',
-    body: JSON.stringify({
-      name: checkedPlaylistName + ' (Cleanified)',
-      public: false
-    }),
-    headers: {
-      Authorization: 'Bearer ' + accessToken,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(data => {
-      newlyCreatedPlaylistID = data.id;
-      getAndDisplayTracks(checkedPlaylistID, newlyCreatedPlaylistID);
-    });
-}
-
-function getAndDisplayTracks(checkedPlaylistID, newPlaylistID) {
-  //Gets the tracks of the OG Playlist
-  fetch(`https://api.spotify.com/v1/playlists/${checkedPlaylistID}/tracks`, {
-    headers: {
-      Authorization: 'Bearer ' + accessToken,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(data => {
-      let cleanTracks = [];
-      let tracksInPlaylist = ``;
-      let totalTracks;
-      data.items.forEach(function(names) {
-        if (names.track.explicit) {
-          cleanTracks.push('spotify:track:' + names.track.id);
-        }
-        tracksInPlaylist += `
-        <ul class="list-group list-group-flush">
-        <li  class="list-group-item" name="trackTitles" trackId="${names.track.id}" explicit="${names.track.explicit}">${names.track.name}</li>
-          </ul>
-
-          `;
-      });
-
-      document.getElementById('tracksInPlaylist').innerHTML = tracksInPlaylist;
-      document.getElementById(
-        'numberOfSongsBeforeCleanified'
-      ).innerHTML = `(${data.total} total)`;
-
-      addTracksIntoCleanfiedPlaylist(newPlaylistID, cleanTracks);
-      findCleanVersionOfSongs(checkedPlaylistID, newPlaylistID);
-      getAfterCleanified(newPlaylistID);
-
-      //display "after cleanified"
-    });
-}
-
-function getAfterCleanified(newPlaylistID) {
-  setTimeout(function() {
-    fetch(`https://api.spotify.com/v1/playlists/${newPlaylistID}/tracks`, {
+    let newlyCreatedPlaylistID = '';
+    //creates new playlist
+    let response = await fetch('https://api.spotify.com/v1/me/playlists', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: checkedPlaylistName + ' (Cleanified)',
+        public: false
+      }),
       headers: {
         Authorization: 'Bearer ' + accessToken,
         'Content-Type': 'application/json'
       }
-    })
-      .then(res => res.json())
-      .then(data => {
-        let cleanTracks = [];
-        let tracksInNewPlaylist = ``;
-        data.items.forEach(function(names) {
-          tracksInNewPlaylist += `
-        <ul class="list-group list-group-flush">
-        <li  class="list-group-item" name="trackTitles" trackId="${names.track.id}" explicit="${names.track.explicit}">${names.track.name}</li>
-          </ul>
+    });
 
-          `;
-        });
+    let data = await response.json();
 
-        document.getElementById(
-          'tracksInNewPlaylist'
-        ).innerHTML = tracksInNewPlaylist;
-        document.getElementById(
-          'numberOfSongsAfterCleanified'
-        ).innerHTML = `(${data.total} total)`;
+    newlyCreatedPlaylistID = data.id;
+    getAndDisplayTracks(checkedPlaylistID, newlyCreatedPlaylistID);
+  } catch(e) {
+    console.log(e);
+  }
+}
+
+async function getAndDisplayTracks(checkedPlaylistID, newPlaylistID) {
+  try {
+    //Gets the tracks of the OG Playlist
+    let response = await fetch(`https://api.spotify.com/v1/playlists/${checkedPlaylistID}/tracks`, {
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    let data = await response.json();
+
+    let cleanTracks = [];
+    let tracksInPlaylist = ``;
+    let totalTracks;
+    data.items.forEach(function(names) {
+      if (names.track.explicit) {
+        cleanTracks.push('spotify:track:' + names.track.id);
+      }
+      tracksInPlaylist += `
+      <ul class="list-group list-group-flush">
+      <li  class="list-group-item" name="trackTitles" trackId="${names.track.id}" explicit="${names.track.explicit}">${names.track.name}</li>
+        </ul>
+
+        `;
+    });
+
+    document.getElementById('tracksInPlaylist').innerHTML = tracksInPlaylist;
+    document.getElementById(
+      'numberOfSongsBeforeCleanified'
+    ).innerHTML = `(${data.total} total)`;
+
+    addTracksIntoCleanfiedPlaylist(newPlaylistID, cleanTracks);
+    findCleanVersionOfSongs(checkedPlaylistID, newPlaylistID);
+    getAfterCleanified(newPlaylistID);
+
+    //display "after cleanified"
+  } catch(e) {
+    console.log(e);
+  }
+}
+
+function getAfterCleanified(newPlaylistID) {
+  setTimeout(async function() {
+    try {
+      let response = await fetch(`https://api.spotify.com/v1/playlists/${newPlaylistID}/tracks`, {
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      let data = await response.json();
+
+      let cleanTracks = [];
+      let tracksInNewPlaylist = ``;
+      data.items.forEach(function(names) {
+        tracksInNewPlaylist += `
+      <ul class="list-group list-group-flush">
+      <li  class="list-group-item" name="trackTitles" trackId="${names.track.id}" explicit="${names.track.explicit}">${names.track.name}</li>
+        </ul>
+
+        `;
       });
+
+      document.getElementById(
+        'tracksInNewPlaylist'
+      ).innerHTML = tracksInNewPlaylist;
+      document.getElementById(
+        'numberOfSongsAfterCleanified'
+      ).innerHTML = `(${data.total} total)`;
+    } catch(e) {
+      console.log(e);
+    }
   }, 3000);
 }
 
-function addTracksIntoCleanfiedPlaylist(playlistID, cleanTracks) {
-  console.log('clean tracks')
+async function addTracksIntoCleanfiedPlaylist(playlistID, cleanTracks) {
+  console.log('add clean tracks')
   console.log(cleanTracks);
-  //  `https://api.spotify.com/v1/playlists/5U74wGWvE7pepqLyYSklT1/tracks`,
-  fetch(`https://api.spotify.com/v1/playlists/${playlistID}/tracks`, {
-    method: 'POST',
-    body: JSON.stringify({
-      uris: cleanTracks
-    }),
-    headers: {
-      Authorization: 'Bearer ' + accessToken,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(data => {});
-}
 
-function findCleanVersionOfSongs(checkedPlaylistID, newPlaylistID) {
-  //add all of the explicit songs you want to look for into an array
-  fetch(`https://api.spotify.com/v1/playlists/${checkedPlaylistID}/tracks`, {
-    headers: {
-      Authorization: 'Bearer ' + accessToken,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(data => {
-      let explicitTracks = [];
-      let count = 0;
-      data.items.forEach(function(names) {
-        if (!names.track.explicit) {
-          count++;
-          explicitTracks.push(`${names.track.name} `);
+  try {
+    // spotify has limit of 100 tracks that can be added to a playlist in single api call
+    let curIndex = 0;
+    do {
+      var cleanTracksSlice = cleanTracks.slice(curIndex, curIndex +100);
+
+      //  `https://api.spotify.com/v1/playlists/5U74wGWvE7pepqLyYSklT1/tracks`,
+      let response = await fetch(`https://api.spotify.com/v1/playlists/${playlistID}/tracks`, {
+        method: 'POST',
+        body: JSON.stringify({
+          uris: cleanTracks
+        }),
+        headers: {
+          Authorization: 'Bearer ' + accessToken,
+          'Content-Type': 'application/json'
         }
       });
-      for (i = 0; i < explicitTracks.length; i++) {
-        searchForSong(explicitTracks[i], newPlaylistID);
-      }
-    });
-}
+      
+      let data = await response.json();
 
-function searchForSong(songTitle, newPlaylistID) {
-  console.log('searching for ' + songTitle);
-  fetch(` https://api.spotify.com/v1/search?q=${songTitle}&type=track&limit=5`, {
-    headers: {
-      Authorization: 'Bearer ' + accessToken,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.tracks.items.length > 0) {
-        songTracksList = data.tracks.items;
-
-        findFirstExplicitSong(
-          songTracksList,
-          songTitle,
-          newPlaylistID
-        );
-      }
-    });
-}
-
-function findFirstExplicitSong(songIDList, songTitle, newPlaylistID) {
-  let cleanTracks = [];
-
-  console.log(songIDList);
-
-  for (let i = 0; i < songIDList.length; i++) {
-    let names = songIDList[i];
-    cleanTracks.push('spotify:track:' + names.id);
-    break;
+      curIndex += 100;
+    } while (cleanTracks.length - curIndex > 0);
+  } catch(e) {
+    console.log(e);
   }
+  
+}
 
-  addTracksIntoCleanfiedPlaylist(newPlaylistID, cleanTracks);
+async function findCleanVersionOfSongs(checkedPlaylistID, newPlaylistID) {
+  try {
+    //add all of the explicit songs you want to look for into an array
+    let foundTracks = [];
+    let searchPromises = [];
+
+    let response = await fetch(`https://api.spotify.com/v1/playlists/${checkedPlaylistID}/tracks`, {
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    let data = await response.json();
+
+    let explicitTracks = [];
+    let count = 0;
+    data.items.forEach(function(names) {
+      if (!names.track.explicit) {
+        count++;
+        explicitTracks.push(`${names.track.name} `);
+      }
+    });
+    for (i = 0; i < explicitTracks.length; i++) {
+      var newTracks = searchForSong(explicitTracks[i], newPlaylistID);
+      foundTracks.push(newTracks);
+    }
+    
+    addTracksIntoCleanfiedPlaylist(newPlaylistID, foundTracks);    
+  } catch(e) {
+    console.log(e);
+  }
+}
+
+async function searchForSong(songTitle, newPlaylistID) {
+  console.log('searching for ' + songTitle);
+
+  try {
+    let response = await fetch(` https://api.spotify.com/v1/search?q=${songTitle}&type=track&limit=1`, {
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    let data = await response.json();
+
+    console.log(data)
+    if (data.tracks.items.length) {
+      songID = data.tracks.items[0];
+      return songID;
+    } else {
+      return '';
+    }
+  } catch(e) {
+    console.log(e);
+  }
 }
