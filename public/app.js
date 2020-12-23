@@ -222,7 +222,7 @@ async function addTracksIntoCleanfiedPlaylist(playlistID, cleanTracks) {
     let curIndex = 0;
     do {
       var cleanTracksSlice = cleanTracks.slice(curIndex, curIndex +100);
-
+      
       //  `https://api.spotify.com/v1/playlists/5U74wGWvE7pepqLyYSklT1/tracks`,
       let response = await fetch(`https://api.spotify.com/v1/playlists/${playlistID}/tracks`, {
         method: 'POST',
@@ -248,8 +248,7 @@ async function addTracksIntoCleanfiedPlaylist(playlistID, cleanTracks) {
 async function findCleanVersionOfSongs(checkedPlaylistID, newPlaylistID) {
   try {
     //add all of the explicit songs you want to look for into an array
-    let foundTracks = [];
-    let searchPromises = [];
+    let searchPromisesList = [];
 
     let response = await fetch(`https://api.spotify.com/v1/playlists/${checkedPlaylistID}/tracks`, {
       headers: {
@@ -269,11 +268,13 @@ async function findCleanVersionOfSongs(checkedPlaylistID, newPlaylistID) {
       }
     });
     for (i = 0; i < explicitTracks.length; i++) {
-      var newTracks = searchForSong(explicitTracks[i], newPlaylistID);
-      foundTracks.push(newTracks);
+      var searchPromise = searchForSong(explicitTracks[i], newPlaylistID);
+      searchPromisesList.push(searchPromise);
     }
-    
-    addTracksIntoCleanfiedPlaylist(newPlaylistID, foundTracks);    
+
+    Promise.all(searchPromisesList).then((foundTracks) => {
+      addTracksIntoCleanfiedPlaylist(newPlaylistID, foundTracks);    
+    })
   } catch(e) {
     console.log(e);
   }
@@ -294,7 +295,7 @@ async function searchForSong(songTitle, newPlaylistID) {
 
     console.log(data)
     if (data.tracks.items.length) {
-      songID = data.tracks.items[0];
+      songID = data.tracks.items[0].uri;
       return songID;
     } else {
       return '';
