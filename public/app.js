@@ -226,7 +226,7 @@ async function addTracksIntoPlaylist(playlistID, cleanTracks) {
         }),
         headers: {
           Authorization: 'Bearer ' + accessToken,
-          'Content-Type': 'application
+          'Content-Type': 'application/json'
         }
       });
       
@@ -237,7 +237,6 @@ async function addTracksIntoPlaylist(playlistID, cleanTracks) {
   } catch(e) {
     console.log(e);
   }
-  
 }
 
 async function searchForSong(origSongUri) {
